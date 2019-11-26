@@ -132,6 +132,7 @@ std::string cmGlobalNinjaGenerator::EncodePath(const std::string& path)
   return result;
 }
 
+#define PRELUDE "## DISTANT ## "
 void cmGlobalNinjaGenerator::WriteBuild(std::ostream& os,
                                         cmNinjaBuild const& build,
                                         int cmdLineLimit,
@@ -157,8 +158,10 @@ void cmGlobalNinjaGenerator::WriteBuild(std::ostream& os,
   std::string buildStr("build");
   {
     // Write explicit outputs
+    printf("%s >>>\n", PRELUDE);
     for (std::string const& output : build.Outputs) {
       buildStr += " " + EncodePath(output);
+      printf("%s output = %s\n", PRELUDE, output.c_str());
       if (this->ComputingUnknownDependencies) {
         this->CombinedBuildOutputs.insert(output);
       }
@@ -167,6 +170,7 @@ void cmGlobalNinjaGenerator::WriteBuild(std::ostream& os,
     if (!build.ImplicitOuts.empty()) {
       buildStr += " |";
       for (std::string const& implicitOut : build.ImplicitOuts) {
+        printf("%s implicit_output = %s\n", PRELUDE, implicitOut.c_str());
         buildStr += " " + EncodePath(implicitOut);
       }
     }
@@ -174,6 +178,7 @@ void cmGlobalNinjaGenerator::WriteBuild(std::ostream& os,
 
     // Write the rule.
     buildStr += " ";
+    printf("%s rule = %s\n", PRELUDE, build.Rule.c_str());
     buildStr += build.Rule;
   }
 
@@ -184,6 +189,7 @@ void cmGlobalNinjaGenerator::WriteBuild(std::ostream& os,
     // Write explicit dependencies.
     for (std::string const& explicitDep : build.ExplicitDeps) {
       arguments += " " + EncodePath(explicitDep);
+      printf("%s explicit_dependency = %s\n", PRELUDE, explicitDep.c_str());
     }
 
     // Write implicit dependencies.
@@ -191,6 +197,7 @@ void cmGlobalNinjaGenerator::WriteBuild(std::ostream& os,
       arguments += " |";
       for (std::string const& implicitDep : build.ImplicitDeps) {
         arguments += " " + EncodePath(implicitDep);
+        printf("%s implicit_dependency = %s\n", PRELUDE, implicitDep.c_str());
       }
     }
 
@@ -199,6 +206,7 @@ void cmGlobalNinjaGenerator::WriteBuild(std::ostream& os,
       arguments += " ||";
       for (std::string const& orderOnlyDep : build.OrderOnlyDeps) {
         arguments += " " + EncodePath(orderOnlyDep);
+        printf("%s order_only_depenendency = %s\n", PRELUDE, orderOnlyDep.c_str());
       }
     }
 
@@ -210,6 +218,7 @@ void cmGlobalNinjaGenerator::WriteBuild(std::ostream& os,
   {
     std::ostringstream variable_assignments;
     for (auto const& variable : build.Variables) {
+      printf("%s variable_definition '%s' = '%s'\n", PRELUDE, variable.first.c_str(), variable.second.c_str());
       cmGlobalNinjaGenerator::WriteVariable(
         variable_assignments, variable.first, variable.second, "", 1);
     }
@@ -222,6 +231,7 @@ void cmGlobalNinjaGenerator::WriteBuild(std::ostream& os,
          (arguments.size() + buildStr.size() + assignments.size() + 1000) >
            static_cast<size_t>(cmdLineLimit))) {
       variable_assignments.str(std::string());
+      printf("%s variable_assignments = %s\n", PRELUDE, assignments.c_str());
       cmGlobalNinjaGenerator::WriteVariable(variable_assignments, "RSP_FILE",
                                             build.RspFile, "", 1);
       assignments += variable_assignments.str();
@@ -232,6 +242,7 @@ void cmGlobalNinjaGenerator::WriteBuild(std::ostream& os,
     }
   }
 
+  printf("%s <<<\n", PRELUDE);
   os << buildStr << arguments << assignments << "\n";
 }
 
@@ -318,6 +329,8 @@ void cmGlobalNinjaGenerator::WriteMacOSXContentBuild(std::string input,
 void cmGlobalNinjaGenerator::WriteRule(std::ostream& os,
                                        cmNinjaRule const& rule)
 {
+  printf("%sglobal_define_rule %s = '%s'\n", PRELUDE, rule.Name.c_str(), rule.Command.c_str());
+
   // -- Parameter checks
   // Make sure the rule has a name.
   if (rule.Name.empty()) {
